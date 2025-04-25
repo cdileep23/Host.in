@@ -1,24 +1,24 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest, NextFetchEvent } from 'next/server';
 
-export default clerkMiddleware({
-  publicRoutes: [
-    '/',
-    '/events/:id',
+// Create the original Clerk middleware
+const baseMiddleware = clerkMiddleware();
+
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  const url = req.nextUrl.pathname;
+
+  // Routes to ignore (e.g., webhooks)
+  const ignoredRoutes = [
     '/api/webhook/clerk',
     '/api/webhook/stripe',
     '/api/uploadthing',
-  ],
-  ignoredRoutes: [
-    '/api/webhook/clerk',
-    '/api/webhook/stripe',
-    '/api/uploadthing',
-  ]
-});
+  ];
 
-export const config = {
-  matcher: [
-    '/((?!.+\\.[\\w]+$|_next).*)', // This matches all routes except static files and Next.js internals
-    '/',
-    '/(api|trpc)(.*)', // API and TRPC routes
-  ],
-};
+  if (ignoredRoutes.some(route => url.startsWith(route))) {
+    return NextResponse.next();
+  }
+
+  // Apply Clerk middleware otherwise
+  return baseMiddleware(req, event);
+}
